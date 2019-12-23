@@ -1,0 +1,6 @@
+Flask
+selenium
+redis
+celery
+flower
+requests
