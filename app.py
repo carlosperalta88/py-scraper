@@ -1,4 +1,6 @@
-from flask import Flask, jsonify, request, json, make_response
+from flask import Flask, jsonify, request, json
+import logging
+from logging.handlers import RotatingFileHandler
 from celery import Celery
 from werkzeug.exceptions import HTTPException, InternalServerError
 
@@ -102,4 +104,7 @@ def start_async_scraper():
 
 
 if __name__ == "__main__":
+    handler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
     app.run(debug=True)
