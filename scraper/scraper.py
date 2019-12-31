@@ -84,6 +84,8 @@ class Scraper:
     def scrape(self, role_and_court):
         data = {}
         try:
+            self.options.add_argument("no-sandbox")
+            self.options.add_argument("--disable-extensions")
             self.connect('https://civil.pjud.cl/CIVILPORWEB/')
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
