@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.support import expected_conditions as EC
@@ -41,8 +41,13 @@ def split_role_in_components(role):
 class Scraper:
     def __init__(self):
         self.options = Options()
+        self.options.add_argument("no-sandbox")
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument("--disable-extensions")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.binary = '/usr/local/bin/geckodriver'
         self.options.headless = True
-        self.driver = webdriver.Chrome(executable_path='chromedriver', chrome_options=self.options)
+        self.driver = webdriver.Firefox(executable_path='geckodriver', firefox_binary='/Applications/Firefox.app/Contents/MacOS/firefox-bin', options=self.options)
         self.wait = WebDriverWait(self.driver, 15)
         self.known_exceptions = (NoSuchElementException, StaleElementReferenceException)
 
@@ -84,8 +89,6 @@ class Scraper:
     def scrape(self, role_and_court):
         data = {}
         try:
-            self.options.add_argument("no-sandbox")
-            self.options.add_argument("--disable-extensions")
             self.connect('https://civil.pjud.cl/CIVILPORWEB/')
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
