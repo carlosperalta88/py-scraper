@@ -2,11 +2,11 @@ import redis
 
 
 class Redis:
-    def __init__(self):
+    def __init__(self, list_name):
         self.port = 6379
         self.db = 1
         self.r = redis.Redis(host='localhost', port=self.port, db=self.db)
-        self.list_name = 'roles'
+        self.list_name = list_name
         self.exception_list_name = 'failed_roles'
 
     def save(self, role):
@@ -39,20 +39,13 @@ class Redis:
 
     def get_last(self):
         try:
-            return self.r.lrange('roles', -1, -1)
+            return self.r.lrange(self.list_name, -1, -1)
         except Exception as err:
             raise err
 
     def delete(self, role):
         try:
             self.r.lrem(self.list_name, -1, role)
-            return 200
-        except Exception as err:
-            raise err
-
-    def delete_exception(self, role):
-        try:
-            self.r.lrem(self.exception_list_name, -1, role)
             return 200
         except Exception as err:
             raise err

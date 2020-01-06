@@ -12,6 +12,8 @@ app.secret_key = app.config['SECRET_KEY']
 from scraper.executor import Executor
 from handler.data import Queue
 from handler.api import Responder
+from report.csv_parser import parser
+
 client = Celery(
         app.import_name,
         backend=app.config['CELERY_RESULT_BACKEND'],
@@ -25,7 +27,23 @@ def start_scraping():
     with app.app_context():
         try:
             app.logger.info('start scrapping')
-            exe = Executor()
+            exe = Executor('role')
+            response = Responder()
+            role = exe.format_scrapped_data(exe.execute_scraper())
+            update_role = response.update_role(role)
+            app.logger.info(update_role)
+            return
+        except Exception as e:
+            app.logger.error(e)
+            return
+
+
+@client.task()
+def retry_scraping():
+    with app.app_context():
+        try:
+            app.logger.info('start scrapping')
+            exe = Executor('failed_roles')
             response = Responder()
             role = exe.format_scrapped_data(exe.execute_scraper())
             update_role = response.update_role(role)
@@ -79,7 +97,7 @@ def hello():
 def add_to_scraper_queue():
     try:
         roles = request.json['roles']
-        queue = Queue()
+        queue = Queue('roles')
         response = queue.queue_roles(roles)
         if response == 201:
             app.logger.info('roles saved')
@@ -95,9 +113,37 @@ def add_to_scraper_queue():
 @app.route('/scraper/execute', methods=['GET'])
 def start_async_scraper():
     try:
-        start_scraping.apply_async(countdown=5)
+        if request.args.get('queue') == 'roles':
+            start_scraping.apply_async(countdown=5)
+
+        if request.args.get('queue') == 'failed_roles':
+            retry_scraping.apply_async(countdown=5)
+
         app.logger.info('will start scrapping')
-        return jsonify({'message': 'Starting...'}), 202
+        return jsonify(message='Starting...'), 202
+    except Exception as e:
+        app.logger.error(e)
+        return handle_500(e)
+
+
+@app.route('/report/generate', methods=['POST'])
+def generate_report():
+    try:
+        data = request.json['data']
+        parser(data)
+        return jsonify(code='201'), 201
+    except Exception as e:
+        app.logger.error(e)
+        return handle_500(e)
+
+
+@app.route('/scraper/count', methods=['GET'])
+def get_queue_length():
+    try:
+        queue_name = request.args.get('name')
+        q = Queue(queue_name)
+        list_length = q.get_list_length(queue_name)
+        return jsonify(listName=queue_name, listLength=list_length, code=200), 200
     except Exception as e:
         app.logger.error(e)
         return handle_500(e)

@@ -2,8 +2,8 @@ from handler.db import Redis
 
 
 class Queue:
-    def __init__(self):
-        self.redis = Redis()
+    def __init__(self, list_name):
+        self.redis = Redis(list_name)
 
     def queue_roles(self, roles):
         return self.redis.save_multiple(roles)
@@ -16,9 +16,6 @@ class Queue:
 
     def drop_successful(self, role):
         return self.redis.delete(role)
-
-    def drop_successful_retry(self, role):
-        return self.redis.delete_exception(role)
 
     def save_failed_scrape(self, role):
         return self.redis.save_exception(role)

@@ -6,8 +6,8 @@ from app import app
 
 
 class Executor:
-    def __init__(self):
-        self.queue = Queue()
+    def __init__(self, queue_name):
+        self.queue = Queue(queue_name)
         self.scraper = Scraper()
         self.formatter = Formatter()
 
