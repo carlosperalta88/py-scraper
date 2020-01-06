@@ -41,8 +41,17 @@ def split_role_in_components(role):
 class Scraper:
     def __init__(self):
         self.options = Options()
-        self.options.headless = True
-        self.driver = webdriver.Chrome(executable_path='chromedriver', chrome_options=self.options)
+        #self.options.headless = True
+        #self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--ignore-ssl-errors=true")
+        self.options.add_argument("--ssl-protocol=TLSv1.2")
+        self.options.add_argument("--allow-insecure-localhost")
+        #self.capabilities = self.options.to_capabilities()
+        self.capabilities = {
+            "browserName": "chrome", "version": "76.0", "enableVNC": True, "enableVideo": False
+        }
+        #self.driver = webdriver.Chrome(executable_path="/usr/local/bin/chromedriver", chrome_options=self.options, service_args=["--verbose", "--log-path=/chromedriver.log"])
+        self.driver = webdriver.Remote(command_executor='http://67.207.92.157:4444/wd/hub', desired_capabilities=self.capabilities)
         self.wait = WebDriverWait(self.driver, 15)
         self.known_exceptions = (NoSuchElementException, StaleElementReferenceException)
 

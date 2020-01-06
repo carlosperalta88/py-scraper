@@ -1,0 +1,2 @@
+java -jar /usr/local/bin/selenium-server-standalone.jar -role hub
+java -Dwebdriver.chrome.driver=/usr/local/bin/chromedriver -jar /usr/local/bin/selenium-server-standalone.jar -role node -nodeConfig nodeConfig.json
