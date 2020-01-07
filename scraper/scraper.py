@@ -176,7 +176,7 @@ class Scraper:
                 data['exhorts'].append([link[0], get_cells_of_rows(exh_popup_rows)])
 
             self.driver.close()
-            print(data)
+            # print(data)
             return data
         except Exception as err:
             self.driver.close()

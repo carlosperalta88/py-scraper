@@ -27,7 +27,7 @@ def start_scraping():
     with app.app_context():
         try:
             app.logger.info('start scrapping')
-            exe = Executor('role')
+            exe = Executor('roles')
             response = Responder()
             role = exe.format_scrapped_data(exe.execute_scraper())
             update_role = response.update_role(role)
