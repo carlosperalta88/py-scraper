@@ -85,6 +85,7 @@ class Scraper:
         data = {}
         try:
             self.connect('https://civil.pjud.cl/CIVILPORWEB/')
+            sleep(5)
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
             self.wait.until(EC.presence_of_element_located((By.XPATH, './/*[@id="contentCellsAddTabla"]/tbody/tr')))
@@ -115,10 +116,12 @@ class Scraper:
             book_length = len(book_options)
             book_count = 0
             data['cause_history'] = []
+            data['pending_docs'] = []
             for book in book_options:
                 book_count += 1
 
                 history_by_book = {'book': book_options[book_count-1].text, 'history': None}
+                docs_by_book = {'book': book_options[book_count-1].text, 'docs': None}
 
                 self.driver.switch_to.default_content()
                 self.switch_context('/html/frameset/frameset/frame[2]')
@@ -130,6 +133,17 @@ class Scraper:
                 history_by_book['history'] = get_cells_of_rows(requested_stories)
                 data['cause_history'].append(history_by_book)
 
+                self.wait.until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[7]')))
+                pending_docs = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[7]')
+                pending_docs.click()
+
+                pending_docs_container = self.driver.find_element_by_xpath(
+                    './html/body/form/table[7]/tbody/tr[2]/td/table/tbody/tr/td/div/div[4]/table[2]/tbody')
+                docs_by_book['docs'] = get_cells_of_rows((lambda x: x.find_elements_by_tag_name('tr') if len(
+                    x.text) > 0 else [])(pending_docs_container))
+                data['pending_docs'].append(docs_by_book)
+
                 if book_count < book_length:
                     books.select_by_visible_text(book_options[book_count].text)
                     self.driver.find_element_by_xpath('.//*[@id="botoncuaderno"]').click()
@@ -138,18 +152,9 @@ class Scraper:
                     books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
                     book_options = books.options
 
-            pending_docs = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[7]')
-            self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[7]')))
-            pending_docs.click()
-
-            exh = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[9]')
             self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[9]')))
+            exh = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[9]')
             exh.click()
-
-            pending_docs_container = self.driver.find_element_by_xpath(
-                './html/body/form/table[7]/tbody/tr[2]/td/table/tbody/tr/td/div/div[4]/table[2]/tbody')
-            data['pending_docs'] = get_cells_of_rows((lambda x: x.find_elements_by_tag_name('tr') if len(
-                x.text) > 0 else [])(pending_docs_container))
 
             exh_container = self.driver.find_element_by_xpath(
                 './html/body/form/table[7]/tbody/tr[2]/td/table/tbody/tr/td/div/div[5]/table[2]/tbody')

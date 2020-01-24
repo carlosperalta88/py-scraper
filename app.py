@@ -38,7 +38,7 @@ def start_scraping():
             return
 
 
-@client.task()
+@client.task(autoretry_for=(Exception,), retry_kwargs={'max_retries': 3})
 def retry_scraping():
     with app.app_context():
         try:
@@ -113,6 +113,9 @@ def add_to_scraper_queue():
 @app.route('/scraper/execute', methods=['GET'])
 def start_async_scraper():
     try:
+        if 'queue' not in request.args:
+            raise Exception('queue not defined')
+
         if request.args.get('queue') == 'roles':
             start_scraping.apply_async(countdown=5)
 
