@@ -41,7 +41,7 @@ def split_role_in_components(role):
 class Scraper:
     def __init__(self):
         self.options = Options()
-        # self.options.headless = True
+        self.options.headless = True
         self.driver = webdriver.Chrome(executable_path='chromedriver', chrome_options=self.options)
         self.wait = WebDriverWait(self.driver, 15, 2)
         self.known_exceptions = (NoSuchElementException, StaleElementReferenceException)
