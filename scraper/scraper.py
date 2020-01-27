@@ -41,9 +41,9 @@ def split_role_in_components(role):
 class Scraper:
     def __init__(self):
         self.options = Options()
-        self.options.headless = True
+        # self.options.headless = True
         self.driver = webdriver.Chrome(executable_path='chromedriver', chrome_options=self.options)
-        self.wait = WebDriverWait(self.driver, 15)
+        self.wait = WebDriverWait(self.driver, 15, 2)
         self.known_exceptions = (NoSuchElementException, StaleElementReferenceException)
 
     def connect(self, url):
@@ -81,6 +81,15 @@ class Scraper:
             print(err)
             raise err
 
+    def wait_and_find(self, xpath):
+        try:
+            self.wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+            ele = self.driver.find_element_by_xpath(xpath)
+            return ele
+        except Exception as err:
+            print(xpath, err)
+            raise err
+
     def scrape(self, role_and_court):
         data = {}
         try:
@@ -98,6 +107,7 @@ class Scraper:
             status = self.driver.find_element_by_xpath('./html/body/form/table[3]/tbody/tr[2]/td[1]')
             data['status'] = status.text
 
+            self.wait.until(EC.presence_of_element_located((By.XPATH, './html/body/form/table[5]/tbody/tr/td[2]/img')))
             receptor_button = self.driver.find_element_by_xpath('./html/body/form/table[5]/tbody/tr/td[2]/img')
             receptor_button.click()
 
@@ -105,14 +115,14 @@ class Scraper:
             receptor_data = validate_rows_existence(self.driver.find_element_by_xpath('.//*[@id="ReceptorDIV"]/table[4]/tbody'))
             data['receptor'] = get_cells_of_rows(receptor_data) if len(receptor_data) > 0 else []
 
+            self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/form/div[2]/table[5]/tbody/tr/td/a')))
             close_receptor_popup = self.driver.find_element_by_xpath('/html/body/form/div[2]/table[5]/tbody/tr/td/a')
+            sleep(2)
             close_receptor_popup.click()
-
             self.driver.switch_to.default_content()
             self.switch_context('/html/frameset/frameset/frame[2]')
-
             books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
-            book_options = books.options
+            book_options = tuple(books.options)
             book_length = len(book_options)
             book_count = 0
             data['cause_history'] = []
@@ -136,21 +146,29 @@ class Scraper:
                 self.wait.until(
                     EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[7]')))
                 pending_docs = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[7]')
+                sleep(2)
                 pending_docs.click()
+
+                self.wait.until(EC.presence_of_element_located((By.XPATH, './html/body/form/table[7]/tbody/tr[2]/td/table/tbody/tr/td/div/div[4]/table[2]/tbody')))
+                sleep(2)
 
                 pending_docs_container = self.driver.find_element_by_xpath(
                     './html/body/form/table[7]/tbody/tr[2]/td/table/tbody/tr/td/div/div[4]/table[2]/tbody')
+
                 docs_by_book['docs'] = get_cells_of_rows((lambda x: x.find_elements_by_tag_name('tr') if len(
                     x.text) > 0 else [])(pending_docs_container))
                 data['pending_docs'].append(docs_by_book)
 
-                if book_count < book_length:
-                    books.select_by_visible_text(book_options[book_count].text)
-                    self.driver.find_element_by_xpath('.//*[@id="botoncuaderno"]').click()
-                    self.driver.switch_to.default_content()
-                    self.switch_context('/html/frameset/frameset/frame[2]')
-                    books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
-                    book_options = books.options
+                if book_count == 2:
+                    break
+
+                books.select_by_visible_text(book_options[book_count].text)
+                self.wait.until(EC.presence_of_element_located((By.XPATH, './/*[@id="botoncuaderno"]')))
+                self.driver.find_element_by_xpath('.//*[@id="botoncuaderno"]').click()
+                self.driver.switch_to.default_content()
+                self.switch_context('/html/frameset/frameset/frame[2]')
+                books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
+                book_options = books.options
 
             self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[9]')))
             exh = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[9]')
