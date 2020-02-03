@@ -45,13 +45,16 @@ class Formatter:
         return exhort
 
     def formatter(self, raw_data):
-        cause_history = list(map(lambda x: self.get_history(x), raw_data["cause_history"]))
-        exhorts = list(map(lambda x: format_data(x, self.default_format["exhort"]), raw_data["exhort"]))
-        exhorts_with_rdd = list(map(lambda x: self.get_exhort_details(x, raw_data["exhorts"]), exhorts))
-        pending_docs = list(map(lambda x: self.get_docs(x), raw_data["pending_docs"]))
-        receptor = list(map(lambda x: format_data(x, self.default_format["receptor"]), raw_data["receptor"]))
-        role_search = list(map(lambda x: format_data(x, self.default_format["role_search"]), raw_data["role_search"]))
-        status = raw_data["status"].split(": ")[1] if len(raw_data["status"]) > 0 else ""
-
-        return {"cause_history": cause_history, "exhorts": exhorts_with_rdd, "pending_docs": pending_docs,
-                "receptor": receptor, "role_search": role_search, "status": status}
+        try:
+            cause_history = list(map(lambda x: self.get_history(x), raw_data["cause_history"])) if "cause_history" in raw_data else []
+            exhorts = list(map(lambda x: format_data(x, self.default_format["exhort"]), raw_data["exhort"])) if "exhort" in raw_data else []
+            exhorts_with_rdd = list(map(lambda x: self.get_exhort_details(x, raw_data["exhorts"]), exhorts)) if "exhorts" in raw_data else []
+            pending_docs = list(map(lambda x: self.get_docs(x), raw_data["pending_docs"])) if "pending_docs" in raw_data else []
+            receptor = list(map(lambda x: format_data(x, self.default_format["receptor"]), raw_data["receptor"])) if "receptor" in raw_data else []
+            role_search = list(map(lambda x: format_data(x, self.default_format["role_search"]), raw_data["role_search"])) if "role_search" in raw_data else []
+            status = raw_data["status"].split(": ")[1] if len(raw_data["status"]) > 0 else ""
+            return {"cause_history": cause_history, "exhorts": exhorts_with_rdd, "pending_docs": pending_docs,
+                    "receptor": receptor, "role_search": role_search, "status": status}
+        except Exception as e:
+            print('formatter')
+            raise e

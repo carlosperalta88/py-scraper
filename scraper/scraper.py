@@ -1,3 +1,4 @@
+from datetime import date
 from time import sleep
 
 from selenium import webdriver
@@ -97,6 +98,15 @@ class Scraper:
             sleep(5)
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
+
+            sleep(2)
+            try:
+                self.driver.find_element_by_xpath('.//*[@id="contentCellsAddTabla"]/tbody/tr')
+            except NoSuchElementException:
+                data["role_search"] = [[role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', '']]
+                data["status"] = "Fake: Sin Notificar"
+                return data
+
             self.wait.until(EC.presence_of_element_located((By.XPATH, './/*[@id="contentCellsAddTabla"]/tbody/tr')))
             causes_container = self.driver.find_element_by_xpath('.//*[@id="contentCellsAddTabla"]/tbody')
             causes = causes_container.find_elements_by_tag_name('tr')
