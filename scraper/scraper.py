@@ -132,7 +132,7 @@ class Scraper:
             self.driver.switch_to.default_content()
             self.switch_context('/html/frameset/frameset/frame[2]')
             books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
-            book_options = tuple(books.options)
+            book_options = books.options
             book_length = len(book_options)
             book_count = 0
             data['cause_history'] = []
@@ -169,7 +169,7 @@ class Scraper:
                     x.text) > 0 else [])(pending_docs_container))
                 data['pending_docs'].append(docs_by_book)
 
-                if book_count == 2:
+                if book_count == book_length:
                     break
 
                 books.select_by_visible_text(book_options[book_count].text)
@@ -213,4 +213,5 @@ class Scraper:
             return data
         except Exception as err:
             self.driver.close()
+            print(err, role_and_court)
             raise err
