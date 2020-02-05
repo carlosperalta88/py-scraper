@@ -129,19 +129,24 @@ class Scraper:
             close_receptor_popup = self.driver.find_element_by_xpath('/html/body/form/div[2]/table[5]/tbody/tr/td/a')
             sleep(2)
             close_receptor_popup.click()
+
             self.driver.switch_to.default_content()
             self.switch_context('/html/frameset/frameset/frame[2]')
             books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
-            book_options = books.options
+            book_options = []
+            for book in books.options:
+                book_options.append(book.text)
+
             book_length = len(book_options)
             book_count = 0
             data['cause_history'] = []
             data['pending_docs'] = []
+
             for book in book_options:
                 book_count += 1
 
-                history_by_book = {'book': book_options[book_count-1].text, 'history': None}
-                docs_by_book = {'book': book_options[book_count-1].text, 'docs': None}
+                history_by_book = {'book': book, 'history': None}
+                docs_by_book = {'book': book, 'docs': None}
 
                 self.driver.switch_to.default_content()
                 self.switch_context('/html/frameset/frameset/frame[2]')
@@ -172,13 +177,12 @@ class Scraper:
                 if book_count == book_length:
                     break
 
-                books.select_by_visible_text(book_options[book_count].text)
+                books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
+                books.select_by_visible_text(book_options[book_count])
                 self.wait.until(EC.presence_of_element_located((By.XPATH, './/*[@id="botoncuaderno"]')))
                 self.driver.find_element_by_xpath('.//*[@id="botoncuaderno"]').click()
                 self.driver.switch_to.default_content()
                 self.switch_context('/html/frameset/frameset/frame[2]')
-                books = Select(self.driver.find_element_by_name('CRR_Cuaderno'))
-                book_options = books.options
 
             self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/form/table[7]/tbody/tr[1]/td[9]')))
             exh = self.driver.find_element_by_xpath('/html/body/form/table[7]/tbody/tr[1]/td[9]')
@@ -212,6 +216,8 @@ class Scraper:
             # print(data)
             return data
         except Exception as err:
+            self.driver.save_screenshot("%s.png" % role_and_court)
             self.driver.close()
+            print(data)
             print(err, role_and_court)
             raise err
