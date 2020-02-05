@@ -103,7 +103,7 @@ class Scraper:
             try:
                 self.driver.find_element_by_xpath('.//*[@id="contentCellsAddTabla"]/tbody/tr')
             except NoSuchElementException:
-                data["role_search"] = [[role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', '']]
+                data["role_search"] = [[role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', role_and_court.split('*')[1]]]
                 data["status"] = "Fake: Sin Notificar"
                 return data
 
