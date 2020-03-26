@@ -3,6 +3,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from celery import Celery
 from werkzeug.exceptions import HTTPException, InternalServerError
+from urllib.parse import unquote
+import functools
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -13,6 +15,8 @@ from scraper.executor import Executor
 from handler.data import Queue
 from handler.api import Responder
 from report.csv_parser import parser
+from scraper.scraper import Scraper
+from scraper.formatter import Formatter
 
 client = Celery(
         app.import_name,
@@ -22,16 +26,24 @@ client = Celery(
 client.conf.update(app.config)
 
 
-@client.task()
-def start_scraping():
+def compose(*functions):
+    return functools.reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
+
+
+@client.task(autoretry_for=(Exception,), retry_kwargs={'max_retries': 3})
+def start_scraping(role):
     with app.app_context():
         try:
             app.logger.info('start scrapping')
-            exe = Executor('roles')
             response = Responder()
-            role = exe.format_scrapped_data(exe.execute_scraper())
-            update_role = response.update_role(role)
-            app.logger.info(update_role)
+            scraper = Scraper()
+            formatter = Formatter()
+
+            print(unquote(role))
+            if role:
+                result_role = compose(formatter.formatter, scraper.scrape)(unquote(role))
+                update_role = response.update_role(result_role)
+                app.logger.info(update_role)
             return
         except Exception as e:
             app.logger.error(e)
@@ -96,12 +108,10 @@ def hello():
 @app.route('/scraper/add', methods=['POST'])
 def add_to_scraper_queue():
     try:
-        roles = request.json['roles']
-        queue = Queue('roles')
-        response = queue.queue_roles(roles)
-        if response == 201:
-            app.logger.info('roles saved')
-            return jsonify(message='saved', code=201)
+        role = request.json['roles']
+        if role:
+            start_scraping.apply_async(role, countdown=5)
+            return jsonify(message='role added', code=201)
         app.logger.error('could not save roles')
         return jsonify(error='Ooops... Something went wrong', code=500)
     except Exception as e:
@@ -117,7 +127,7 @@ def start_async_scraper():
             raise Exception('queue not defined')
 
         if request.args.get('queue') == 'roles':
-            start_scraping.apply_async(countdown=5)
+            start_scraping.apply_async(args=[], countdown=5)
 
         if request.args.get('queue') == 'failed_roles':
             retry_scraping.apply_async(countdown=5)

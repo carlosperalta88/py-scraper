@@ -66,16 +66,24 @@ class Scraper:
     def search_cause(self, role_and_court):
         try:
             court_name = split_role_and_court(role_and_court)[1]
+            cause_type = split_role_in_components(split_role_and_court(role_and_court)[0])[0]
             cause_id = split_role_in_components(split_role_and_court(role_and_court)[0])[1]
             cause_year = split_role_in_components(split_role_and_court(role_and_court)[0])[2]
+
+            c_type = Select(self.driver.find_element_by_name('TIP_Causa'))
+            c_type.select_by_visible_text(cause_type)
+
             cause = self.driver.find_element_by_xpath('.//*[@id="RUC"]/input[1]')
             cause.clear()
             cause.send_keys(cause_id)
+
             year = self.driver.find_element_by_name('ERA_Causa')
             year.clear()
             year.send_keys(cause_year)
+
             court = Select(self.driver.find_element_by_name('COD_Tribunal'))
             court.select_by_visible_text(court_name)
+
             query_button = self.driver.find_element_by_xpath('.//html/body/form/table[6]/tbody/tr/td[2]/a[1]')
             query_button.click()
         except Exception as err:
