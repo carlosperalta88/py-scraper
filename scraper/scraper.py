@@ -1,5 +1,6 @@
 from datetime import date
 from time import sleep
+import logging
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -226,6 +227,9 @@ class Scraper:
         except Exception as err:
             self.driver.save_screenshot("%s.png" % role_and_court)
             self.driver.close()
-            print(data)
-            print(err, role_and_court)
-            raise err
+            data["role_search"] = [
+                [role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', role_and_court.split('*')[1]]]
+            data["status"] = "Fake: Failed"
+            logging.info(data)
+            logging.exception("%s %s" % err, role_and_court)
+            return data
