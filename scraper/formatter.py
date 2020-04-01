@@ -1,3 +1,6 @@
+import logging
+
+
 def format_data(data, categories):
     return {key: value for key, value in zip(categories, data)}
 
@@ -56,5 +59,5 @@ class Formatter:
             return {"cause_history": cause_history, "exhorts": exhorts_with_rdd, "pending_docs": pending_docs,
                     "receptor": receptor, "role_search": role_search, "status": status}
         except Exception as e:
-            print('formatter')
+            logging.error('formatter')
             raise e
