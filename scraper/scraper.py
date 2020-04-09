@@ -1,5 +1,6 @@
 from datetime import date
 from time import sleep
+import logging
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,7 +8,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, InvalidSessionIdException
 from selenium.webdriver.support import expected_conditions as EC
 
 
@@ -51,35 +52,41 @@ class Scraper:
         try:
             return self.driver.get(url)
         except Exception as err:
-            print(err)
-            self.driver.close()
-            return None
+            logging.error(err)
+            raise err
 
     def switch_context(self, xpath):
         try:
             return self.driver.switch_to.frame(self.driver.find_element_by_xpath(xpath))
         except Exception as err:
-            print(err)
-            self.driver.close()
-            return None
+            logging.error(err)
+            raise err
 
     def search_cause(self, role_and_court):
         try:
             court_name = split_role_and_court(role_and_court)[1]
+            cause_type = split_role_in_components(split_role_and_court(role_and_court)[0])[0]
             cause_id = split_role_in_components(split_role_and_court(role_and_court)[0])[1]
             cause_year = split_role_in_components(split_role_and_court(role_and_court)[0])[2]
+
+            c_type = Select(self.driver.find_element_by_name('TIP_Causa'))
+            c_type.select_by_visible_text(cause_type)
+
             cause = self.driver.find_element_by_xpath('.//*[@id="RUC"]/input[1]')
             cause.clear()
             cause.send_keys(cause_id)
+
             year = self.driver.find_element_by_name('ERA_Causa')
             year.clear()
             year.send_keys(cause_year)
+
             court = Select(self.driver.find_element_by_name('COD_Tribunal'))
             court.select_by_visible_text(court_name)
+
             query_button = self.driver.find_element_by_xpath('.//html/body/form/table[6]/tbody/tr/td[2]/a[1]')
             query_button.click()
         except Exception as err:
-            print(err)
+            logging.info('search')
             raise err
 
     def wait_and_find(self, xpath):
@@ -88,7 +95,7 @@ class Scraper:
             ele = self.driver.find_element_by_xpath(xpath)
             return ele
         except Exception as err:
-            print(xpath, err)
+            logging.error(xpath, err)
             raise err
 
     def scrape(self, role_and_court):
@@ -98,13 +105,13 @@ class Scraper:
             sleep(5)
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
-
             sleep(2)
             try:
                 self.driver.find_element_by_xpath('.//*[@id="contentCellsAddTabla"]/tbody/tr')
             except NoSuchElementException:
                 data["role_search"] = [[role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', role_and_court.split('*')[1]]]
                 data["status"] = "Fake: Sin Notificar"
+                self.driver.close()
                 return data
 
             self.wait.until(EC.presence_of_element_located((By.XPATH, './/*[@id="contentCellsAddTabla"]/tbody/tr')))
@@ -218,6 +225,8 @@ class Scraper:
         except Exception as err:
             self.driver.save_screenshot("%s.png" % role_and_court)
             self.driver.close()
-            print(data)
-            print(err, role_and_court)
-            raise err
+            data["role_search"] = [
+                [role_and_court.split('*')[0], date.today().strftime('%d/%m/%Y'), '', role_and_court.split('*')[1]]]
+            data["status"] = "Fake: Failed"
+            logging.exception("%s %s" %(err, role_and_court))
+            return data
