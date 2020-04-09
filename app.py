@@ -10,9 +10,6 @@ app = Flask(__name__)
 app.config.from_object('config')
 app.secret_key = app.config['SECRET_KEY']
 
-
-from scraper.executor import Executor
-from handler.data import Queue
 from handler.api import Responder
 from report.csv_parser import parser
 from scraper.scraper import Scraper
@@ -44,22 +41,6 @@ def start_scraping(role):
                 result_role = compose(formatter.formatter, scraper.scrape)(unquote(role))
                 update_role = response.update_role(result_role)
                 app.logger.info(update_role)
-            return
-        except Exception as e:
-            app.logger.error(e)
-            return
-
-
-@client.task(autoretry_for=(Exception,), retry_kwargs={'max_retries': 3})
-def retry_scraping():
-    with app.app_context():
-        try:
-            app.logger.info('start scrapping')
-            exe = Executor('failed_roles')
-            response = Responder()
-            role = exe.format_scrapped_data(exe.execute_scraper())
-            update_role = response.update_role(role)
-            app.logger.info(update_role)
             return
         except Exception as e:
             app.logger.error(e)
@@ -120,43 +101,12 @@ def add_to_scraper_queue():
         return jsonify(error=e.args[0], code=500)
 
 
-@app.route('/scraper/execute', methods=['GET'])
-def start_async_scraper():
-    try:
-        if 'queue' not in request.args:
-            raise Exception('queue not defined')
-
-        if request.args.get('queue') == 'roles':
-            start_scraping.apply_async(args=[], countdown=5)
-
-        if request.args.get('queue') == 'failed_roles':
-            retry_scraping.apply_async(countdown=5)
-
-        app.logger.info('will start scrapping')
-        return jsonify(message='Starting...'), 202
-    except Exception as e:
-        app.logger.error(e)
-        return handle_500(e)
-
-
 @app.route('/report/generate', methods=['POST'])
 def generate_report():
     try:
         data = request.json['data']
         parser(data)
         return jsonify(code='201'), 201
-    except Exception as e:
-        app.logger.error(e)
-        return handle_500(e)
-
-
-@app.route('/scraper/count', methods=['GET'])
-def get_queue_length():
-    try:
-        queue_name = request.args.get('name')
-        q = Queue(queue_name)
-        list_length = q.get_list_length(queue_name)
-        return jsonify(listName=queue_name, listLength=list_length, code=200), 200
     except Exception as e:
         app.logger.error(e)
         return handle_500(e)
