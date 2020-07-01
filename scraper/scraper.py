@@ -1,6 +1,7 @@
 from datetime import date
 from time import sleep
 import logging
+from app import app
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -89,19 +90,10 @@ class Scraper:
             logging.info('search')
             raise err
 
-    def wait_and_find(self, xpath):
-        try:
-            self.wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
-            ele = self.driver.find_element_by_xpath(xpath)
-            return ele
-        except Exception as err:
-            logging.error(xpath, err)
-            raise err
-
     def scrape(self, role_and_court):
         data = {}
         try:
-            self.connect('https://civil.pjud.cl/CIVILPORWEB/')
+            self.connect(app.config['SCRAPED_URL'])
             sleep(5)
             self.switch_context('/html/frameset/frameset/frame[2]')
             self.search_cause(role_and_court)
@@ -212,7 +204,7 @@ class Scraper:
                 exhorts_links.append([name, link])
 
             for link in exhorts_links:
-                self.connect('https://civil.pjud.cl{}'.format(link[1]))
+                self.connect('{}{}'.format(app.config['SCRAPED_HOST'], link[1]))
                 self.wait.until(EC.presence_of_element_located((By.XPATH, './html/body/form/table[3]/tbody/tr[3]/td/div/table/tbody')))
 
                 exh_popup_rows = self.driver.find_elements_by_xpath('/html/body/form/table[3]/tbody/tr[3]/td/div/table/tbody/tr')
